@@ -5,9 +5,11 @@
 
     RewriteEngine On
 
-    # Deny direct access to apps folder
-    RewriteCond %{REQUEST_URI} ^/apps/ [NC]
-    RewriteRule ^ - [R=403,L]
+    # Deny direct web access to the Laravel application internals. Everything inside
+    # the "apps" directory is protected except "apps/public", which is the only
+    # directory that may be served. These are relative patterns, so the project can
+    # be moved to any folder without breaking.
+    RewriteRule ^apps/(?!public/) - [R=403,L]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
@@ -21,6 +23,13 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
+
+    # Serve static assets from the Laravel public directory (apps/public) when the
+    # file does not already exist at the web root. The PHP front controller also
+    # serves these as a fallback, so this just makes common asset requests faster.
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^((build|assets|css|js|images|img|media|storage|fonts|files|uploads)/.+|favicon\.ico|robots\.txt)$ apps/public/$1 [L]
 
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
